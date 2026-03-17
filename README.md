@@ -114,64 +114,6 @@ Receives approved bump operations from the policy evaluator and turns them into 
 
 When state has already been archived, this layer locates the entry's last known value from Vigil's historical snapshot cache, constructs the `restoreFootprint` transaction, handles submission and confirmation, and immediately applies a bump policy to the restored entry. Also provides a proactive "danger zone" view — entries within hours of archival that have no active bump policy — to prevent the need for recovery in the first place.
 
----
-
-## API Reference
-
-### Scanner
-
-#### `vigil.register(contractId, options?)`
-Register a contract for monitoring. Vigil begins discovering storage keys and tracking TTLs immediately. Options allow specifying known keys, polling frequency overrides, and storage type filters.
-
-#### `vigil.inventory(contractId?)`
-Returns the full state inventory — every tracked key with its storage type, current TTL, estimated expiration timestamp, and last bump time. Omit the contract ID to get inventory across all registered contracts.
-
-#### `vigil.health(contractId?)`
-Returns a health score for a contract or across all contracts. Percentage of entries in healthy, at-risk, and critical TTL ranges.
-
-### Alerting
-
-#### `vigil.setAlertPolicy(policy)`
-Define alert thresholds and channels. Supports per-contract, per-storage-type, and per-key granularity. Thresholds are specified in ledger count with optional wall-clock time conversion.
-
-#### `vigil.onAlert(callback)`
-Register a callback for alert events. Callback receives `{ contractId, key, storageType, severity, currentTtl, threshold }`.
-
-#### `vigil.alertHistory(filters?)`
-Returns historical alert records. Filter by contract, severity, time range, or resolution status.
-
-### Auto-Bump
-
-#### `vigil.setBumpPolicy(policy)`
-Define an auto-bump policy. Specifies target TTL, trigger threshold, priority tier, fee budget, and scope (all contracts, specific contract, specific keys).
-
-#### `vigil.estimateCosts(period?)`
-Returns projected bump costs for the next day, week, or month based on current policies, TTL decay rates, and network fee conditions.
-
-#### `vigil.bumpHistory(filters?)`
-Returns historical bump records — every transaction submitted, its status, fee paid, entries bumped, and ledger confirmed.
-
-#### `vigil.pause()` / `vigil.resume()`
-Pause and resume auto-bumping globally. Alerts continue while bumping is paused.
-
-### Recovery
-
-#### `vigil.scan.archived(contractId)`
-Returns all entries for a contract that have been archived since monitoring began, with their last known values and expiration timestamps.
-
-#### `vigil.restore(contractId, keys, options?)`
-Constructs and submits `restoreFootprint` transactions for the specified keys. Applies a bump policy to restored entries automatically unless disabled in options.
-
-#### `vigil.dangerZone(hoursRemaining?)`
-Returns all entries across all contracts that will archive within the specified time window and have no active bump policy. Default is 24 hours.
-
-### Dashboard
-
-#### `vigil.serve(port?)`
-Starts the web dashboard on the specified port. Provides contract overviews, TTL timelines, cost projections, bulk management controls, and the full activity log.
-
----
-
 ## Security Model
 
 **Signing keys are scoped and isolated.** In custodial mode, Vigil uses a dedicated bump key that is separate from your contract deployment keys. This key only needs authority to submit `extendTTL` and `restoreFootprint` operations. It never touches your contract logic or funds beyond the XLM reserved for bump fees.
@@ -184,25 +126,23 @@ Starts the web dashboard on the specified port. Provides contract overviews, TTL
 
 **RPC failures are handled gracefully.** The scanner supports multiple RPC endpoints with automatic failover. Bump and restore operations retry with exponential backoff and circuit breaking. A network outage triggers alerts but never results in silent data loss.
 
----
-
 ## Deployment Modes
 
-| Mode | Description | Best For |
-|------|-------------|----------|
-| **Library** | Import the Rust crate or TypeScript SDK directly into your project | Developers who want programmatic TTL management integrated into their own tooling |
-| **Self-hosted** | Docker Compose stack with scanner, bump engine, PostgreSQL, and dashboard | Teams that want full control, no external dependencies, and keep signing keys on their own infrastructure |
-| **Hosted** | Managed service — register contracts through the dashboard and Vigil handles everything | Teams that want zero infrastructure overhead and are comfortable with custodial bump key management |
+| Mode            | Description                                                                             | Best For                                                                                                  |
+| --------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| **Library**     | Import the Rust crate or TypeScript SDK directly into your project                      | Developers who want programmatic TTL management integrated into their own tooling                         |
+| **Self-hosted** | Docker Compose stack with scanner, bump engine, PostgreSQL, and dashboard               | Teams that want full control, no external dependencies, and keep signing keys on their own infrastructure |
+| **Hosted**      | Managed service — register contracts through the dashboard and Vigil handles everything | Teams that want zero infrastructure overhead and are comfortable with custodial bump key management       |
 
 ---
 
 ## Storage Types
 
-| Type | Archival Behavior | Vigil Handling |
-|------|------------------|----------------|
-| **Instance** | Archived when TTL expires; recoverable via `restoreFootprint` | Monitored, auto-bumped, recoverable |
-| **Persistent** | Archived when TTL expires; recoverable via `restoreFootprint` | Monitored, auto-bumped, recoverable |
-| **Temporary** | Permanently deleted when TTL expires; not recoverable | Monitored and alerted only — Vigil warns aggressively but cannot recover deleted temporary state |
+| Type           | Archival Behavior                                             | Vigil Handling                                                                                   |
+| -------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| **Instance**   | Archived when TTL expires; recoverable via `restoreFootprint` | Monitored, auto-bumped, recoverable                                                              |
+| **Persistent** | Archived when TTL expires; recoverable via `restoreFootprint` | Monitored, auto-bumped, recoverable                                                              |
+| **Temporary**  | Permanently deleted when TTL expires; not recoverable         | Monitored and alerted only — Vigil warns aggressively but cannot recover deleted temporary state |
 
 ---
 

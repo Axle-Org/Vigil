@@ -1,16 +1,7 @@
 export class Vigil {
-  constructor(private apiKey: string) {}
+  constructor(private config: any) {}
 
-  async getTTL(contractId: string, key?: string) {
-    // TODO: Implement TTL query
-  }
-
-  async getHealth(contractId: string) {
-    // TODO: Implement health query
-    return { score: 100 }
-  }
-
-  async bumpTTL(contractId: string, options: any) {
-    // TODO: Implement bump TTL
+  async init() {
+    console.log('Vigil SDK initialized');
   }
 }
